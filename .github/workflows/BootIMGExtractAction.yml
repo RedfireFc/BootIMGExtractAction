@@ -34,7 +34,7 @@ jobs:
           git clone --depth 1 https://github.com/tosasitill/Firmware_extractor.git
 
           cd Firmware_extractor
-          aria2c -s 32 -x 32 --max-connection-per-server=16 -d . -o firmware.zip "${{ github.event.inputs.rom_url }}"
+          aria2c -s 32 -x 16 -d . -o firmware.zip "${{ github.event.inputs.rom_url }}"
           ./extractor.sh firmware.zip
 
           cd "${{ github.workspace }}"
