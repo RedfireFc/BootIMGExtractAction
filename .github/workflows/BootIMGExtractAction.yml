@@ -40,18 +40,22 @@ jobs:
           cd "${{ github.workspace }}"
           mkdir -p extracted_images
 
-          # Copy only the specific images you want
-          for img in boot.img init_boot.img xbl_config.img uefi.img; do
-            if [ -f ~/Firmware_extractor/out/$img ]; then
-              cp ~/Firmware_extractor/out/$img extracted_images/
-            fi
-          done
+          # Copy each file independently, ignore if it doesn't exist
+          cp ~/Firmware_extractor/out/boot.img extracted_images/ 2>/dev/null || true
+          cp ~/Firmware_extractor/out/init_boot.img extracted_images/ 2>/dev/null || true
+          cp ~/Firmware_extractor/out/xbl_config.img extracted_images/ 2>/dev/null || true
+          cp ~/Firmware_extractor/out/uefi.img extracted_images/ 2>/dev/null || true
+
+          echo "=== Files copied to extracted_images ==="
+          ls -lh extracted_images/
+          echo "========================================="
 
           {
             echo "提交日期：$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S')"
             echo "ROM 下载直链：${{ github.event.inputs.rom_url }}"
             if ls extracted_images/* 1>/dev/null 2>&1; then
-              du -h --total extracted_images/* | tail -n 1
+              echo "提取镜像："
+              ls -lh extracted_images/ | tail -n +2 | awk '{print $9, "(" $5 ")"}'
             else
               echo "未提取到任何目标镜像文件"
             fi
