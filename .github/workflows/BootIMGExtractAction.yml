@@ -8,47 +8,44 @@ on:
         required: true
         default: 'https://ultimateota.d.miui.com/OS3.0.304.0.WNKMIXM/vermeer_global-ota_full-OS3.0.304.0.WNKMIXM-user-16.0-ea3932c8f8.zip?t=1791584367&s=f4755399b91d5b88dae7a1c84a0fcb74'
 
+permissions:
+  contents: write
+
 jobs:
   YIJIANTIQU:
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: 安装依赖
         run: |
-          sudo apt-get update
-          sudo apt-get -y install -qq python3-pip aria2 liblzma-dev brotli lz4
-          python3 -m pip install --upgrade pip
-          python3 -m pip install backports.lzma pycryptodome protobuf==3.20
+          sudo apt-get -qq install -y aria2 liblzma-dev brotli lz4 python3-pip > /dev/null 2>&1
+          python3 -m pip install -q backports.lzma pycryptodome protobuf==3.20
           BUILD_TIME=$(TZ=Asia/Shanghai date +"%m%d%H%M")
           echo "BUILD_TIME=$BUILD_TIME" >> "$GITHUB_ENV"
 
-      - name: 提取镜像并上传至 TMP
+      - name: 提取镜像
         shell: bash
         run: |
           set -Eeuo pipefail
 
           cd ~
-          git clone --recurse-submodules https://github.com/tosasitill/Firmware_extractor.git
+          git clone --depth 1 https://github.com/tosasitill/Firmware_extractor.git
 
           cd Firmware_extractor
-          aria2c -s 10 -x 10 -d . -o firmware.zip "${{ github.event.inputs.rom_url }}"
+          aria2c -s 32 -x 32 --max-connection-per-server=16 -d . -o firmware.zip "${{ github.event.inputs.rom_url }}"
           ./extractor.sh firmware.zip
 
           cd "${{ github.workspace }}"
-          touch info.md
-          echo "提交日期：$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S')" >> info.md
-          echo "ROM 下载直链：${{ github.event.inputs.rom_url }}" >> info.md
-
           mkdir -p extracted_images
-          cp ~/Firmware_extractor/out/*.img extracted_images/ 2>/dev/null || true
+          cp ~/Firmware_extractor/out/*.img extracted_images/
 
-          if ls extracted_images/*.img 1>/dev/null 2>&1; then
-            du -h --total extracted_images/*.img | sed 's/^/提取镜像大小： /' | head -n 1 >> info.md
-          else
-            echo "未提取到任何 img 镜像文件" >> info.md
-          fi
+          {
+            echo "提交日期：$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S')"
+            echo "ROM 下载直链：${{ github.event.inputs.rom_url }}"
+            du -h --total extracted_images/*.img | sed 's/^/提取镜像大小： /' | head -n 1
+          } > info.md
 
       - name: 上传镜像及相关信息
         uses: ncipollo/release-action@v1.12.0
