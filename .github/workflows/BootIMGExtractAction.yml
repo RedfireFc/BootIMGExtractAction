@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       rom_url:
-        description: 'ROM 下载直链'
+        description: 'ROM download URL'
         required: true
-        default: 'https://mirrorbits.lineageos.org/full/tissot/20230425/lineage-19.1-20230425-nightly-tissot-signed.zip'
+        default: 'https://ultimateota.d.miui.com/OS3.0.304.0.WNKMIXM/vermeer_global-ota_full-OS3.0.304.0.WNKMIXM-user-16.0-ea3932c8f8.zip?t=1791584367&s=f4755399b91d5b88dae7a1c84a0fcb74'
 
 jobs:
   YIJIANTIQU:
@@ -42,24 +42,19 @@ jobs:
           echo "提交日期：$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S')" >> info.md
           echo "ROM 下载直链：${{ github.event.inputs.rom_url }}" >> info.md
 
-          cd ~/Firmware_extractor/out
+          mkdir -p extracted_images
+          cp ~/Firmware_extractor/out/*.img extracted_images/ 2>/dev/null || true
 
-          if [ -f "init_boot.img" ] && [ -f "boot.img" ]; then
-            rm -f boot.img
-          fi
-
-          shopt -s nullglob
-          img_files=( *.img )
-          if [ "${#img_files[@]}" -gt 0 ]; then
-            du -h --total "${img_files[@]}" | sed 's/^/提取镜像大小： /' | head -n 1 >> "${{ github.workspace }}/info.md"
+          if ls extracted_images/*.img 1>/dev/null 2>&1; then
+            du -h --total extracted_images/*.img | sed 's/^/提取镜像大小： /' | head -n 1 >> info.md
           else
-            echo "未提取到任何 img 镜像文件" >> "${{ github.workspace }}/info.md"
+            echo "未提取到任何 img 镜像文件" >> info.md
           fi
 
       - name: 上传镜像及相关信息
         uses: ncipollo/release-action@v1.12.0
         with:
-          artifacts: "${HOME}/Firmware_extractor/out/*"
+          artifacts: "extracted_images/*"
           bodyfile: "${{ github.workspace }}/info.md"
           tag: "OUTPUT_${{ env.BUILD_TIME }}_${{ github.run_id }}"
           token: ${{ secrets.GITHUB_TOKEN }}
