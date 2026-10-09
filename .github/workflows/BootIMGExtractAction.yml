@@ -39,12 +39,22 @@ jobs:
 
           cd "${{ github.workspace }}"
           mkdir -p extracted_images
-          cp ~/Firmware_extractor/out/*.img extracted_images/
+
+          # Copy only the specific images you want
+          for img in boot.img init_boot.img xbl_config.img uefi.img; do
+            if [ -f ~/Firmware_extractor/out/$img ]; then
+              cp ~/Firmware_extractor/out/$img extracted_images/
+            fi
+          done
 
           {
             echo "提交日期：$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S')"
             echo "ROM 下载直链：${{ github.event.inputs.rom_url }}"
-            du -h --total extracted_images/*.img | sed 's/^/提取镜像大小： /' | head -n 1
+            if ls extracted_images/* 1>/dev/null 2>&1; then
+              du -h --total extracted_images/* | tail -n 1
+            else
+              echo "未提取到任何目标镜像文件"
+            fi
           } > info.md
 
       - name: 上传镜像及相关信息
