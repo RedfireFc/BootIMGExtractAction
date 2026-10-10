@@ -18,14 +18,6 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 缓存依赖
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
       - name: 安装依赖
         run: |
           sudo apt-get -qq install -y aria2 liblzma-dev brotli lz4 zip > /dev/null 2>&1
@@ -48,17 +40,13 @@ jobs:
           cd "${{ github.workspace }}"
           mkdir -p extracted_images
 
-          # Copy EVERY .img file found anywhere in the extraction output
+          # Copy ALL files ending with .img from the extractor output
           find ~/Firmware_extractor/out -type f -name "*.img" -exec cp {} extracted_images/ \;
 
-          echo "=== All .img files copied ==="
-          ls -lh extracted_images/
-          echo "============================="
-
-          # Create ZIP with ALL .img files
+          # Create zip containing all .img files found
           if ls extracted_images/*.img 1>/dev/null 2>&1; then
             cd extracted_images
-            zip -q ../extracted_images.zip *.img
+            zip -q -r ../extracted_images.zip .
             cd ..
           fi
 
@@ -69,7 +57,7 @@ jobs:
               echo "ZIP 文件大小：$(ls -lh extracted_images.zip | awk '{print $5}')"
               echo ""
               echo "包含的文件："
-              unzip -l extracted_images.zip | grep '\.img' | awk '{print $4, "(" $1 " bytes)"}'
+              unzip -l extracted_images.zip | grep '\.img'
             else
               echo "未提取到任何镜像文件"
             fi
