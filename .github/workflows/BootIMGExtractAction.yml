@@ -40,10 +40,12 @@ jobs:
           cd "${{ github.workspace }}"
           mkdir -p extracted_images
 
-          # Copy ALL files ending with .img from the extractor output
-          find ~/Firmware_extractor/out -type f -name "*.img" -exec cp {} extracted_images/ \;
+          # Copy only the specific target images if they exist
+          for img in boot.img init_boot.img uefi.img xbl_config.img; do
+            find ~/Firmware_extractor/out -type f -name "$img" -exec cp {} extracted_images/ \; 2>/dev/null || true
+          done
 
-          # Create zip containing all .img files found
+          # Create zip containing the target images found
           if ls extracted_images/*.img 1>/dev/null 2>&1; then
             cd extracted_images
             zip -q -r ../extracted_images.zip .
