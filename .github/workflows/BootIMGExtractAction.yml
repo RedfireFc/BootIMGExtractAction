@@ -18,10 +18,18 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
+      - name: 缓存依赖
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
       - name: 安装依赖
         run: |
-          sudo apt-get -qq install -y aria2 liblzma-dev brotli lz4 python3-pip zip > /dev/null 2>&1
-          python3 -m pip install -q backports.lzma pycryptodome protobuf==3.20
+          sudo apt-get -qq install -y aria2 liblzma-dev brotli lz4 zip > /dev/null 2>&1
+          python3 -m pip install -q --no-cache-dir backports.lzma pycryptodome protobuf==3.20
           BUILD_TIME=$(TZ=Asia/Shanghai date +"%m%d%H%M")
           echo "BUILD_TIME=$BUILD_TIME" >> "$GITHUB_ENV"
 
@@ -40,21 +48,18 @@ jobs:
           cd "${{ github.workspace }}"
           mkdir -p extracted_images
 
-          # Copy ALL .img files
-          if ls ~/Firmware_extractor/out/*.img 1>/dev/null 2>&1; then
-            cp ~/Firmware_extractor/out/*.img extracted_images/
-            echo "=== Copied .img files ==="
-            ls -lh extracted_images/
-            echo "========================"
-          fi
+          # Copy EVERY .img file found anywhere in the extraction output
+          find ~/Firmware_extractor/out -type f -name "*.img" -exec cp {} extracted_images/ \;
 
-          # Create a zip with all extracted images
+          echo "=== All .img files copied ==="
+          ls -lh extracted_images/
+          echo "============================="
+
+          # Create ZIP with ALL .img files
           if ls extracted_images/*.img 1>/dev/null 2>&1; then
             cd extracted_images
             zip -q ../extracted_images.zip *.img
             cd ..
-            echo "Created extracted_images.zip"
-            ls -lh extracted_images.zip
           fi
 
           {
